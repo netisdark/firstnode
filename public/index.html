@@ -11,8 +11,8 @@
     <header>💬 Real-Time Chat</header>
     <ul id="messages"></ul>
     <form id="form">
-      <input id="m" autocomplete="off" placeholder="Type a message..." />
-      <button>Send</button>
+      <input id="m" autocomplete="off" placeholder="Type a message..." disabled />
+      <button disabled>Send</button>
     </form>
   </div>
 
@@ -22,11 +22,31 @@
     const form = document.getElementById('form');
     const input = document.getElementById('m');
     const messages = document.getElementById('messages');
+    const button = form.querySelector('button');
+
+    let username = '';
+
+    // Prompt for username
+    while (!username || username.trim().length === 0) {
+      username = prompt("Enter your username:");
+    }
+
+    // Enable input and button
+    input.disabled = false;
+    button.disabled = false;
+
+    // Ask for notification permission
+    if (Notification.permission !== 'granted') {
+      Notification.requestPermission();
+    }
 
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       if (input.value.trim() !== '') {
-        socket.emit('chat message', input.value);
+        socket.emit('chat message', {
+          username: username,
+          message: input.value
+        });
         input.value = '';
       }
     });
@@ -36,6 +56,14 @@
       item.textContent = msg;
       messages.appendChild(item);
       messages.scrollTop = messages.scrollHeight;
+
+      // Show browser notification if tab is not focused
+      if (document.hidden && Notification.permission === 'granted') {
+        new Notification('New Message', {
+          body: msg,
+          icon: 'chat-icon.png' // optional: replace with your icon
+        });
+      }
     });
   </script>
 </body>
