@@ -1,0 +1,204 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "url": "https://newsapi.org/v2/top-headlines?category=technology&apiKey=a5df67d5f5f54c4ea8fb92abf6a9cdfd",
+        "options": {}
+      },
+      "name": "Fetch Tech News1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1260,
+        220
+      ],
+      "id": "2c0446df-d984-4181-b12f-aa32ab987868"
+    },
+    {
+      "parameters": {},
+      "name": "Cron",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        920,
+        220
+      ],
+      "id": "c173cf51-d6f4-4519-a29a-1d68bca58093"
+    },
+    {
+      "parameters": {
+        "functionCode": "if (!items[0]?.json?.articles || !Array.isArray(items[0].json.articles)) {\n  return [];\n}\nreturn items[0].json.articles.slice(0, 3).map(article => ({\n  json: {\n    title: article.title || '',\n    description: article.description || '',\n    link: article.url || '',\n    image: article.urlToImage || ''\n  }\n}));"
+      },
+      "name": "Extract Articles",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        220
+      ],
+      "id": "ce330c55-9eb6-4d62-9404-39f03517fefe"
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=AIzaSyAk7Wr-X9CZng22jdYwnLPsMDK15VA7aVQ",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"You are a humorous and creative tech news writer.\\n\\nHere's the breaking news:\\nTitle: {{ $json.title }}\\nContent: {{ $json.description }}\\nLink: {{ $json.link }}\\nImage: {{ $json.image }}\\n\\nWrite an article that includes:\\n- A short, punchy summary\\n- Background & consequences\\n- A joke\\n- A CEO quote\\n- 2-3 brainstorming questions\\n- 2-3 image ideas\\n- Source link at the bottom\\n\\nReturn a JSON object with these keys:\\n- title (repeat the one above)\\n- image (same as above)\\n- summary\\n- content\\n- jokes\\n- quote\\n- questions (array)\\n- imageIdeas (array)\\n- source\"\n        }\n      ]\n    }\n  ]\n}\n"
+      },
+      "name": "Call Gemini",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [
+        1940,
+        220
+      ],
+      "id": "edc8485c-c1c3-4a7f-a59f-b14c9df88066"
+    },
+    {
+      "parameters": {
+        "functionCode": "const geminiResponses = $input.all();\nconst originalArticles = $input.all(1);\n\nconst results = [];\n\nfor (let i = 0; i < geminiResponses.length; i++) {\n  const geminiItem = geminiResponses[i].json;\n  const originalItem = originalArticles[i]?.json || {};\n\n  const text = geminiItem?.candidates?.[0]?.content?.parts?.[0]?.text || \"\";\n\n  let jsonText = text.trim();\n  if (jsonText.startsWith(\"```json\")) {\n    jsonText = jsonText.replace(/^```json\\s*/, \"\").replace(/```$/, \"\").trim();\n  }\n\n  try {\n    const parsed = JSON.parse(jsonText);\n\n    results.push({\n      json: {\n        title: parsed.title || originalItem.title || \"Untitled\",\n        summary: parsed.summary || \"[Missing summary]\",\n        content: JSON.stringify(parsed.content) || \"[Missing content]\",\n        jokes: parsed.jokes.join(\",\") || \"[Missing joke]\",\n        quote: parsed.quote.replaceAll(\"\\\"\",\"'\") || \"[Missing quote]\",\n        questions: JSON.stringify(parsed.questions) || [],\n        imageIdeas: JSON.stringify(parsed.imageIdeas) || [],\n        source: parsed.source || originalItem.link || \"\",\n        images: JSON.stringify([parsed.image || originalItem.image || \"\"]),\n        timestamp: new Date().toISOString()\n      }\n    });\n  } catch (err) {\n    console.warn(`Skipping item ${i + 1}: Invalid JSON – ${err.message}`);\n    results.push({\n      json: {\n        title: \"[Invalid JSON]\",\n        summary: \"[Gemini returned invalid JSON]\",\n        content: text,\n        images: [originalItem.image || \"\"],\n        source: originalItem.link || \"\",\n        timestamp: new Date().toISOString()\n      }\n    });\n  }\n}\n\nreturn results;\n"
+      },
+      "name": "Parse Gemini Output",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        2300,
+        220
+      ],
+      "id": "644c73fa-ef49-4fbc-8d4c-0e6c2bc7637f"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://firstnode-li1f.onrender.com/api/articles",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": \"{{ $json.title }}\",\n  \"summary\": \"{{ $json.summary }}\",\n  \"content\": {{ $json.content }},\n  \"jokes\": \"{{ $json.jokes }}\",\n  \"quote\": \"{{ $json.quote }}\",\n  \"questions\": {{ $json.questions }} ,\n  \"images\": {{ $json.images }},\n  \"imageIdeas\": {{ $json.imageIdeas }},\n  \"source\": \"{{ $json.source }}\",\n  \"timestamp\": \"{{ $json.timestamp }}\"\n}",
+        "options": {
+          "redirect": {
+            "redirect": {}
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2860,
+        240
+      ],
+      "id": "abb2b51d-8047-4589-a615-89fe92e07645",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "batchSize": 10,
+        "options": {
+          "reset": false
+        }
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        2520,
+        220
+      ],
+      "id": "75af98cc-41b8-4a5d-b379-0e9aaaee4baf",
+      "name": "Loop Over Items"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Fetch Tech News1": {
+      "main": [
+        [
+          {
+            "node": "Extract Articles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cron": {
+      "main": [
+        [
+          {
+            "node": "Fetch Tech News1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Articles": {
+      "main": [
+        [
+          {
+            "node": "Call Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Gemini": {
+      "main": [
+        [
+          {
+            "node": "Parse Gemini Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Gemini Output": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e97d6e44-cf9a-4d75-a2ea-e2a949f9d527",
+  "meta": {
+    "instanceId": "7b2d9f0fb23f1e8c4dcb7d742e933cf1c3e8b378887faac49b5aa877cec3f73f"
+  },
+  "id": "ZnOk6nqnUALC3oBu",
+  "tags": []
+}
