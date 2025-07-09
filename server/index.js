@@ -34,7 +34,15 @@ app.get('/api/articles', async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch articles' });
   }
 });
-
+app.get('/api/getArticleList', async (req, res) => {
+  try {
+    const articles = await Article.find({}, { title: 1, images: 1 }).limit(10);
+    res.json(articles);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to fetch articles' });
+  }
+});
 app.post('/api/articles', async (req, res) => {
   try {
     const { title } = req.body;
