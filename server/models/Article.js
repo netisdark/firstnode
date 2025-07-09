@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const ArticleSchema = new mongoose.Schema({
-  title: { type: String, required: true },
+  title: { type: String, required: true, unique: true },
   summary: { type: String, default: '' },
   content: { type: String, default: '' },
   jokes: { type: String, default: '' },

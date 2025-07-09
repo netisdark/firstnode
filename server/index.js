@@ -32,9 +32,17 @@ app.get('/api/articles', async (req, res) => {
 
 app.post('/api/articles', async (req, res) => {
   try {
-    const article = new Article(req.body);
-    const saved = await article.save();
-    res.status(201).json(saved);
+    const { title } = req.body;
+    const existingArticle = await Article.findOne({ title });
+
+    if (existingArticle) {
+      console.log(`Article with title "${title}" already exists.`);
+      res.status(409).json({ error: 'Article already exists' });
+    } else {
+      const article = new Article(req.body);
+      const saved = await article.save();
+      res.status(201).json(saved);
+    }
   } catch (err) {
     console.error('❌ Save failed:', err.message);
     res.status(400).json({ error: 'Invalid article data' });

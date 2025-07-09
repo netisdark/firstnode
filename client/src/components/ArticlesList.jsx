@@ -8,7 +8,7 @@ const ArticlesList = () => {
     fetch("https://firstnode-li1f.onrender.com/api/articles")
       .then((res) => res.json())
       .then((data) => {
-        setArticles(data.reverse()); // Most recent first
+        setArticles(data.reverse());
         setLoading(false);
       })
       .catch((err) => {
