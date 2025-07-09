@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const Article = require('./models/Article');
@@ -9,17 +10,21 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const MONGODB_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/technews';
-mongoose.connect(process.env.MongoDB_URL, {
-  dbName: process.env.database
-})
-.then(() => {
-  console.log('✅ MongoDB connected');
-})
-.catch((err) => {
-  console.error('❌ MongoDB connection error:', err);
-});
+const MongoDB_URL = process.env.MongoDB_URL || 'mongodb://localhost:27017/technews';
 
+mongoose.connect(MongoDB_URL)
+  .then(() => {
+    console.log('✅ MongoDB connected');
+  })
+  .catch((err) => {
+    console.error('❌ MongoDB connection error:', err);
+  });
+
+
+app.use(express.static(path.join(__dirname, '../client/dist')));
+app.get(/^\/(?!api|server).*/, (req, res) => {
+  res.sendFile(path.join(__dirname, '../client/dist/index.html'));
+});
 
 app.get('/api/articles', async (req, res) => {
   try {
