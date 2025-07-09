@@ -1,10 +1,10 @@
 import React, { useContext, useState } from 'react';
 import { NavLink } from 'react-router-dom';
 import { FiSun, FiMoon, FiMenu } from 'react-icons/fi';
-import { ThemeContext } from './ThemeContext'; // Adjust path if needed
+import { useTheme } from './ThemeContext'; // Adjust path if needed
 
 const Navbar = () => {
-  const { theme, toggleTheme } = useContext(ThemeContext);
+  const { theme, toggleTheme } = useTheme();;
   const [menuOpen, setMenuOpen] = useState(false);
 
   const bgColor = theme === 'light' ? 'bg-[#f5f5f7]' : 'bg-[#1c1c1e]';

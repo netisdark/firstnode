@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useContext } from "react";
-import { ThemeContext } from "./ThemeContext"; // adjust path as needed
+import { useTheme } from "./ThemeContext"; // adjust path as needed
 
 const Articles = () => {
-  const { theme } = useContext(ThemeContext);
+  const { theme, toggleTheme } = useTheme();
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("https://firstnode-li1f.onrender.com/api/articles")
+    fetch("/api/articles")
       .then((res) => res.json())
       .then((data) => {
         setArticles(data.reverse());
